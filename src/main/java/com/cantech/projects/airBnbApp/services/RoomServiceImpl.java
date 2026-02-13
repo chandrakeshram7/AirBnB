@@ -7,6 +7,7 @@ import com.cantech.projects.airBnbApp.entities.Room;
 import com.cantech.projects.airBnbApp.exceptions.ResourceNotFoundException;
 import com.cantech.projects.airBnbApp.repositories.HotelRepository;
 import com.cantech.projects.airBnbApp.repositories.RoomRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -22,8 +23,10 @@ public class RoomServiceImpl implements RoomService{
     private final RoomRepository roomRepository;
     private final ModelMapper modelMapper;
     private final HotelRepository hotelRepository;
+    private final InventoryService inventoryService;
 
     @Override
+    @Transactional
     public RoomDTO createNewRoom(Long hotelId, RoomDTO roomDTO) {
         log.info("Creating a new room in the hotel with id {}", hotelId);
         Hotel hotel = hotelRepository
@@ -35,10 +38,14 @@ public class RoomServiceImpl implements RoomService{
         log.info("Created a new room in the hotel with id {}", hotelId);
 
         //TODO Create inventory once room is created
+        if(hotel.getActive()){
+            inventoryService.initializeRoomForYear(room);
+        }
         return modelMapper.map(room ,RoomDTO.class);
     }
 
     @Override
+    @Transactional
     public RoomDTO getRoomById(Long hotelId, Long id) {
         log.info("Getting the room with the id {}", id);
         Room room = roomRepository
@@ -65,19 +72,20 @@ public class RoomServiceImpl implements RoomService{
     }
 
     @Override
+    @Transactional
     public void deleteRoomById(Long id) {
-        boolean exists = roomRepository.existsById(id);
+        Room room = roomRepository.findById(id).orElse(null);
         log.info("Deleting the room with the id {}", id);
-        if(!exists){
+        if(room == null){
             throw new ResourceNotFoundException("Room is not found with id "+ id) ;
         }
-        roomRepository.deleteById(id);
+        inventoryService.deleteInventories(room);
+        roomRepository.delete(room);
         log.info("Deleted the room with the id {}", id);
-
-        //TODO All the future inventory for this room
     }
 
     @Override
+    @Transactional
     public List<RoomDTO> getAllRoomsByHotelId(Long hotelId) {
         log.info("Getting all the rooms of hotel with id {}", hotelId);
         Hotel hotel = hotelRepository

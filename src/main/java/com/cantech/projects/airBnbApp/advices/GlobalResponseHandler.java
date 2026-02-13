@@ -9,6 +9,8 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
+import java.util.List;
+
 @RestControllerAdvice
 public class GlobalResponseHandler implements ResponseBodyAdvice<Object> {
     @Override
@@ -18,7 +20,12 @@ public class GlobalResponseHandler implements ResponseBodyAdvice<Object> {
 
     @Override
     public @Nullable Object beforeBodyWrite(@Nullable Object body, MethodParameter returnType, MediaType selectedContentType, Class<? extends HttpMessageConverter<?>> selectedConverterType, ServerHttpRequest request, ServerHttpResponse response) {
-        if(body instanceof APIResponse) return body;
+        List<String> allowedRoutes = List.of("/v3/api-docs", "/actuator");
+        boolean isAllowed = allowedRoutes
+                .stream()
+                .anyMatch(route -> request.getURI().getPath().contains(route));
+
+        if(body instanceof APIResponse || isAllowed) return body;
         return new APIResponse<>(body);
     }
 }
