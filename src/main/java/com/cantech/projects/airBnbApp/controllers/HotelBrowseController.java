@@ -21,8 +21,8 @@ public class HotelBrowseController {
     private final HotelService hotelService;
 
     @GetMapping("/search")
-    public ResponseEntity<Page<HotelDTO>> searchHotels(@RequestBody HotelSearchRequestDTO hotelSearchRequestDTO){
-        Page<HotelDTO> page = inventoryService.searchHotels(hotelSearchRequestDTO);
+    public ResponseEntity<Page<?>> searchHotels(@RequestBody HotelSearchRequestDTO hotelSearchRequestDTO){
+        Page<?> page = inventoryService.searchHotels(hotelSearchRequestDTO);
         return ResponseEntity.ok(page);
     }
 
