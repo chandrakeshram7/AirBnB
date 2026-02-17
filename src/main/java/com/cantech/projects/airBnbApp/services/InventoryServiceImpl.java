@@ -40,6 +40,7 @@ public class InventoryServiceImpl implements InventoryService{
                     .surgeFactor(BigDecimal.ONE)
                     .totalCount(room.getTotalCount())
                     .bookedCount(0)
+                    .reservedCount(0)
                     .closed(false)
                     .build();
             System.out.println("I am executing");

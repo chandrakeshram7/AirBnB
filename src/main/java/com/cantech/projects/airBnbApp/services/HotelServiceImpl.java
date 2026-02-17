@@ -2,6 +2,7 @@ package com.cantech.projects.airBnbApp.services;
 
 import com.cantech.projects.airBnbApp.dtos.HotelDTO;
 import com.cantech.projects.airBnbApp.dtos.HotelInfoDTO;
+import com.cantech.projects.airBnbApp.dtos.RoomDTO;
 import com.cantech.projects.airBnbApp.entities.Hotel;
 import com.cantech.projects.airBnbApp.entities.HotelContactInfo;
 import com.cantech.projects.airBnbApp.entities.Room;
@@ -93,7 +94,13 @@ public class HotelServiceImpl implements HotelService{
 
     @Override
     public HotelInfoDTO getHotelInfoByHotelId(Long hotelId) {
-        return null;
+        Hotel hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(()-> new ResourceNotFoundException("Hotel with id "+hotelId +" is not found"));
+        List<RoomDTO> rooms = hotel.getRooms()
+                .stream()
+                .map(room -> modelMapper.map(room , RoomDTO.class))
+                .toList();
+        return new HotelInfoDTO(modelMapper.map(hotel, HotelDTO.class), rooms);
     }
 
 
