@@ -5,11 +5,12 @@ import com.cantech.projects.airBnbApp.dtos.BookingRequestDTO;
 import com.cantech.projects.airBnbApp.dtos.GuestDTO;
 import org.jspecify.annotations.Nullable;
 
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 public interface BookingService {
 
     BookingDTO initialiseBooking(BookingRequestDTO bookingRequestDTO);
 
-    BookingDTO addGuests(Long bookingId, List<GuestDTO> guests);
+    BookingDTO addGuests(Long bookingId, List<GuestDTO> guests) throws AccessDeniedException;
 }

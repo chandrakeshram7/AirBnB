@@ -4,13 +4,16 @@ import com.cantech.projects.airBnbApp.dtos.HotelDTO;
 import com.cantech.projects.airBnbApp.dtos.RoomDTO;
 import com.cantech.projects.airBnbApp.entities.Hotel;
 import com.cantech.projects.airBnbApp.entities.Room;
+import com.cantech.projects.airBnbApp.entities.User;
 import com.cantech.projects.airBnbApp.exceptions.ResourceNotFoundException;
+import com.cantech.projects.airBnbApp.exceptions.UnAuthorisedException;
 import com.cantech.projects.airBnbApp.repositories.HotelRepository;
 import com.cantech.projects.airBnbApp.repositories.RoomRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -63,6 +66,10 @@ public class RoomServiceImpl implements RoomService{
         }
         Room room = roomRepository.findById(id).orElse(null);
         Hotel hotel = room.getHotel();
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if(!user.equals(hotel.getOwner())){
+            throw new UnAuthorisedException("Cannot update someone else's room");
+        }
         modelMapper.map(roomDTO, room);
         room.setId(id);
         room.setHotel(hotel);
@@ -75,6 +82,10 @@ public class RoomServiceImpl implements RoomService{
     @Transactional
     public void deleteRoomById(Long id) {
         Room room = roomRepository.findById(id).orElse(null);
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if(!user.equals(room.getHotel().getOwner())){
+            throw new UnAuthorisedException("Cannot delete someone else's room");
+        }
         log.info("Deleting the room with the id {}", id);
         if(room == null){
             throw new ResourceNotFoundException("Room is not found with id "+ id) ;

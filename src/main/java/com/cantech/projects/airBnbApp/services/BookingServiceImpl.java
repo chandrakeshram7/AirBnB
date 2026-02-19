@@ -7,13 +7,18 @@ import com.cantech.projects.airBnbApp.entities.*;
 import com.cantech.projects.airBnbApp.enums.BookingStatus;
 import com.cantech.projects.airBnbApp.enums.Role;
 import com.cantech.projects.airBnbApp.exceptions.ResourceNotFoundException;
+import com.cantech.projects.airBnbApp.exceptions.UnAuthorisedException;
 import com.cantech.projects.airBnbApp.repositories.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.BadRequestException;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
@@ -56,18 +61,7 @@ public class BookingServiceImpl implements BookingService{
 
         inventoryRepository.saveAll(inventoryList);
 
-
-        //Demo user
-        User user = new User();
-        if(saver==0){
-            user.setRoles(Set.of(Role.HOTEL_MANAGER));
-            user.setName("Chandrakesh");
-            user.setEmail("chandrakeshram@gmail.com");
-            user.setPassword("password");
-            userRepository.save(user);
-            saver++;
-        }
-        user = userRepository.findById(1L).orElseThrow(()-> new ResourceNotFoundException("User not found with id "+ 1L)); //TODO Remove DEMO user
+        User user = getCurrentUser();
 
         //TODO : Calculate dynamic pricing
 
@@ -89,20 +83,24 @@ public class BookingServiceImpl implements BookingService{
     }
 
     @Override
-    public BookingDTO addGuests(Long bookingId, List<GuestDTO> guests) {
+    public BookingDTO addGuests(Long bookingId, List<GuestDTO> guests) throws AccessDeniedException{
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(
                 ()-> new ResourceNotFoundException("No such booking available with id "+ bookingId)
         );
 
+        User userCreator = getCurrentUser();
+        if(!userCreator.equals(booking.getUser())){
+            throw new AccessDeniedException("Cannot add guests to the booking that belongs to someone else");
+        }
+
         if(isBookingExpired(booking)){
-            throw new IllegalStateException("Booking has already expired");
+            throw new RuntimeException("Booking has already expired");
         }
 
         if(booking.getBookingStatus()!= BookingStatus.RESERVED){
-            throw new IllegalStateException("Booking is not under reserved state, cannot add guests");
+            throw new RuntimeException("Booking is not under reserved state, cannot add guests");
         }
 
-        User userCreator = getCurrentUser();
         for(GuestDTO guestDTo : guests ){
             Guest guest = modelMapper.map(guestDTo ,Guest.class);
             guest.setUser(userCreator);
@@ -120,11 +118,10 @@ public class BookingServiceImpl implements BookingService{
     }
 
     public User getCurrentUser(){
-        User user = new User();  //TODO Remove the dummy user logic
-        user.setPassword("pass");
-        user.setRoles(Set.of(Role.GUEST));
-        user.setName("chandra");
-        user.setEmail("chandrakesher@gmail.com");
-        return user = userRepository.save(user);
+        if(SecurityContextHolder.getContext().getAuthentication() == null){
+            throw new UnAuthorisedException("User not authorized");
+        }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return  (User) authentication.getPrincipal();
     }
 }
