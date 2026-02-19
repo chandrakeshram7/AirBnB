@@ -1,6 +1,7 @@
 package com.cantech.projects.airBnbApp.security;
 
 import com.cantech.projects.airBnbApp.dtos.LoginRequestDTO;
+import com.cantech.projects.airBnbApp.dtos.RefreshResponseDTO;
 import com.cantech.projects.airBnbApp.dtos.SignUpRequestDTO;
 import com.cantech.projects.airBnbApp.dtos.UserDTO;
 import com.cantech.projects.airBnbApp.entities.User;
@@ -26,6 +27,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final SessionService sessionService;
 
     @Transactional
     public UserDTO signUp(SignUpRequestDTO signUpRequestDTO) throws BadRequestException{
@@ -37,12 +39,12 @@ public class AuthService {
         user.setEmail(signUpRequestDTO.getEmail());
         user.setName(signUpRequestDTO.getName());
         user.setPassword(passwordEncoder.encode(signUpRequestDTO.getPassword()));
-        user.setRoles(Set.of(Role.HOTEL_MANAGER));
+        user.setRoles(Set.of(Role.GUEST));
         user = userRepository.save(user);
         return new UserDTO(user.getId(), user.getEmail(), user.getName());
     }
 
-
+    @Transactional
     public String[] login(LoginRequestDTO loginRequestDTO){
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
                 loginRequestDTO.getEmail(), loginRequestDTO.getPassword()
@@ -54,9 +56,22 @@ public class AuthService {
         String accessToken = jwtService.getAccessToken(user);
         String refreshToken = jwtService.getRefreshToken(user);
 
+        sessionService.createSession(user);
+
         String []tokens = new String[2];
         tokens[0]= accessToken;
         tokens[1] = refreshToken;
         return tokens;
+    }
+
+    @Transactional
+    public RefreshResponseDTO refresh(String refreshToken){
+        Long id = jwtService.getUserIdFromToken(refreshToken);
+        User user = userRepository.findById(id).orElseThrow(
+                ()-> new ResourceNotFoundException("User cannot be obtained from the refresh token"));
+
+        String accessToken = jwtService.getAccessToken(user);
+        sessionService.validateSession(refreshToken);
+        return new RefreshResponseDTO(accessToken);
     }
 }
