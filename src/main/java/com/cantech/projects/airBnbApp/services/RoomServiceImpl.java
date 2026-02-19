@@ -16,6 +16,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 @Service
@@ -58,7 +59,7 @@ public class RoomServiceImpl implements RoomService{
     }
 
     @Override
-    public RoomDTO updateRoomById(Long id, RoomDTO roomDTO) {
+    public RoomDTO updateRoomById(Long id, RoomDTO roomDTO) throws AccessDeniedException {
         boolean exists = roomRepository.existsById(id);
         log.info("Updating the room with the id {}", id);
         if(!exists){
@@ -66,9 +67,9 @@ public class RoomServiceImpl implements RoomService{
         }
         Room room = roomRepository.findById(id).orElse(null);
         Hotel hotel = room.getHotel();
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if(!user.equals(hotel.getOwner())){
-            throw new UnAuthorisedException("Cannot update someone else's room");
+
+        if(!compareUser(hotel.getOwner())){
+            throw new AccessDeniedException("Cannot update someone else's room");
         }
         modelMapper.map(roomDTO, room);
         room.setId(id);
@@ -80,11 +81,11 @@ public class RoomServiceImpl implements RoomService{
 
     @Override
     @Transactional
-    public void deleteRoomById(Long id) {
+    public void deleteRoomById(Long id) throws AccessDeniedException{
         Room room = roomRepository.findById(id).orElse(null);
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if(!user.equals(room.getHotel().getOwner())){
-            throw new UnAuthorisedException("Cannot delete someone else's room");
+
+        if(!compareUser(room.getHotel().getOwner())){
+            throw new AccessDeniedException("Cannot delete someone else's room");
         }
         log.info("Deleting the room with the id {}", id);
         if(room == null){
@@ -107,5 +108,9 @@ public class RoomServiceImpl implements RoomService{
                 .stream()
                 .map(room -> modelMapper.map(room, RoomDTO.class))
                 .toList();
+    }
+    public boolean compareUser(User user){
+        User loggedUser = (User)SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return loggedUser.getId().equals(user.getId());
     }
 }

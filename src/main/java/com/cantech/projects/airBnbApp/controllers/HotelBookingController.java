@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 import java.util.Set;
 
@@ -27,7 +28,7 @@ public class HotelBookingController {
     }
 
     @PostMapping("/{bookingId}/addGuests")
-    public ResponseEntity<BookingDTO> addGuests(@PathVariable Long bookingId,  @RequestBody List<GuestDTO> guests){
+    public ResponseEntity<BookingDTO> addGuests(@PathVariable Long bookingId,  @RequestBody List<GuestDTO> guests) throws AccessDeniedException {
         return ResponseEntity.ok(bookingService.addGuests(bookingId, guests));
     }
 }

@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.file.AccessDeniedException;
+
 @RestController
 @RequestMapping("/admin/hotels")
 @RequiredArgsConstructor
@@ -22,24 +24,24 @@ public class HotelController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<HotelDTO> getHotelById(@PathVariable Long id){
+    public ResponseEntity<HotelDTO> getHotelById(@PathVariable Long id) throws AccessDeniedException {
         log.info("Fetching the hotel with id {}", id);
         return new ResponseEntity<>(hotelService.getHotelById(id), HttpStatus.OK);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<HotelDTO> updateHotelById(@PathVariable Long id, @RequestBody HotelDTO hotelDTO){
+    public ResponseEntity<HotelDTO> updateHotelById(@PathVariable Long id, @RequestBody HotelDTO hotelDTO) throws AccessDeniedException{
         return new ResponseEntity<>(hotelService.updateHotelById(id, hotelDTO), HttpStatus.CREATED);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteHotelById(@PathVariable Long id){
+    public ResponseEntity<?> deleteHotelById(@PathVariable Long id) throws AccessDeniedException{
         hotelService.deleteHotelById(id);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<?> activateHotelById(@PathVariable Long id){
+    public ResponseEntity<?> activateHotelById(@PathVariable Long id) throws AccessDeniedException{
         hotelService.activateHotel(id);
         return ResponseEntity.noContent().build();
     }

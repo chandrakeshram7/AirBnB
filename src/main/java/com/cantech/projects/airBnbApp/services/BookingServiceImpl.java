@@ -61,7 +61,7 @@ public class BookingServiceImpl implements BookingService{
 
         inventoryRepository.saveAll(inventoryList);
 
-        User user = getCurrentUser();
+        User user = (User)SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         //TODO : Calculate dynamic pricing
 
@@ -88,8 +88,8 @@ public class BookingServiceImpl implements BookingService{
                 ()-> new ResourceNotFoundException("No such booking available with id "+ bookingId)
         );
 
-        User userCreator = getCurrentUser();
-        if(!userCreator.equals(booking.getUser())){
+
+        if(!compareUser(booking.getUser())){
             throw new AccessDeniedException("Cannot add guests to the booking that belongs to someone else");
         }
 
@@ -101,9 +101,10 @@ public class BookingServiceImpl implements BookingService{
             throw new RuntimeException("Booking is not under reserved state, cannot add guests");
         }
 
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         for(GuestDTO guestDTo : guests ){
             Guest guest = modelMapper.map(guestDTo ,Guest.class);
-            guest.setUser(userCreator);
+            guest.setUser(user);
             guest = guestRepository.save(guest);
             booking.getGuests().add(guest);
         }
@@ -124,4 +125,12 @@ public class BookingServiceImpl implements BookingService{
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return  (User) authentication.getPrincipal();
     }
+
+    public boolean compareUser(User user){
+        User loggedUser = (User)SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return loggedUser.getId().equals(user.getId());
+    }
+
+
+
 }

@@ -18,6 +18,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.nio.file.AccessDeniedException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -46,25 +47,24 @@ public class HotelServiceImpl implements HotelService{
     }
 
     @Override
-    public HotelDTO getHotelById(Long id){
+    public HotelDTO getHotelById(Long id) throws AccessDeniedException{
         log.info("Getting the hotel with id {}", id);
         Hotel hotel = hotelRepository.findById(id).orElseThrow(()->  new ResourceNotFoundException("No hotel with provided id exists "));
-        User user = (User)SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if(!user.equals(hotel.getOwner())) {
-            throw new UnAuthorisedException("Owner is not authorized to access someone else's hotel");
+        if(!compareUser(hotel.getOwner())) {
+            throw new AccessDeniedException("Owner is not authorized to access someone else's hotel");
         }
         log.info("Got the hotel with the id {}", id);
         return modelMapper.map(hotel, HotelDTO.class);
     }
 
     @Override
-    public HotelDTO updateHotelById(Long id, HotelDTO hotelDTO) {
+    public HotelDTO updateHotelById(Long id, HotelDTO hotelDTO) throws AccessDeniedException {
         Hotel hotel = hotelRepository
                 .findById(id)
                 .orElseThrow(()-> new ResourceNotFoundException("No hotel with id "+ id +" is present"));
-        User user = (User)SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if(!user.equals(hotel.getOwner())){
-            throw new UnAuthorisedException("Cannot update someone else's hotel");
+
+        if(!compareUser(hotel.getOwner())){
+            throw new AccessDeniedException("Cannot update someone else's hotel");
         }
         modelMapper.map(hotelDTO, hotel);
         hotel.setId(id);
@@ -78,12 +78,12 @@ public class HotelServiceImpl implements HotelService{
 
     @Override
     @Transactional
-    public void deleteHotelById(Long id) {
+    public void deleteHotelById(Long id) throws AccessDeniedException{
         log.info("Deleting the hotel with id {}", id);
         Hotel hotel = hotelRepository.findById(id).orElseThrow(()-> new ResourceNotFoundException("Hotel is not found with id "+id));
-        User user = (User)SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if(!user.equals(hotel.getOwner())){
-            throw new UnAuthorisedException("Cannot delete someone else's hotel");
+
+        if(!compareUser(hotel.getOwner())){
+            throw new AccessDeniedException("Cannot delete someone else's hotel");
         }
         List<Room> rooms = hotel.getRooms();
         for(Room room : rooms){
@@ -97,13 +97,13 @@ public class HotelServiceImpl implements HotelService{
 
     @Override
     @Transactional
-    public void activateHotel(Long id) {
+    public void activateHotel(Long id) throws AccessDeniedException{
         Hotel hotel = hotelRepository
                 .findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Hotel does not exists with id "+id));
-        User user = (User)SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if(!user.equals(hotel.getOwner())){
-            throw new UnAuthorisedException("Cannot activate someone else's hotel");
+
+        if(!compareUser(hotel.getOwner())){
+            throw new AccessDeniedException("Cannot activate someone else's hotel");
         }
         log.info("Activating the hotel with hotel id {}", id);
         hotel.setActive(true);
@@ -123,6 +123,11 @@ public class HotelServiceImpl implements HotelService{
                 .map(room -> modelMapper.map(room , RoomDTO.class))
                 .toList();
         return new HotelInfoDTO(modelMapper.map(hotel, HotelDTO.class), rooms);
+    }
+
+    public boolean compareUser(User user){
+        User loggedUser = (User)SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return loggedUser.getId().equals(user.getId());
     }
 
 

@@ -37,5 +37,11 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(new APIResponse<>(apiError), HttpStatus.FORBIDDEN);
     }
 
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<?> handleRuntimeException(RuntimeException exception){
+        APIError apiError = APIError.builder().message(exception.getMessage()).status(HttpStatus.BAD_REQUEST).build();
+        return new ResponseEntity<>(new APIResponse<>(apiError), HttpStatus.BAD_REQUEST);
+    }
+
 
 }

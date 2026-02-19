@@ -21,10 +21,12 @@ import java.util.stream.Collectors;
 public class User implements UserDetails {
     @Override
     public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) return true;
+        if (!(o instanceof User)) return false;
         User user = (User) o;
-        return Objects.equals(id, user.id);
+        return id != null && id.equals(user.id);
     }
+
 
     @Override
     public int hashCode() {

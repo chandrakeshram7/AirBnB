@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 @RestController
@@ -33,12 +34,12 @@ public class RoomController {
     }
 
     @PutMapping("/{roomId}")
-    public ResponseEntity<RoomDTO> updateRoomById(@PathVariable Long roomId, @RequestBody RoomDTO roomDTO){
+    public ResponseEntity<RoomDTO> updateRoomById(@PathVariable Long roomId, @RequestBody RoomDTO roomDTO) throws AccessDeniedException {
         return new ResponseEntity<>(roomService.updateRoomById(roomId, roomDTO), HttpStatus.CREATED);
     }
 
     @DeleteMapping("/{roomId}")
-    public ResponseEntity<?> deleteRoomById(@PathVariable Long roomId){
+    public ResponseEntity<?> deleteRoomById(@PathVariable Long roomId) throws AccessDeniedException{
         roomService.deleteRoomById(roomId);
         return ResponseEntity.noContent().build();
     }
